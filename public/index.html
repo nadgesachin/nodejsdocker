@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .upload-section {
+      border: 1px solid #ccc;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      width: 100%;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      background-color: #dff0d8;
+      color: #3c763d;
+    }
+    .error {
+      background-color: #f2dede;
+      color: #a94442;
+    }
+    .file-list {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .file-item:last-child {
+      border-bottom: none;
+    }
+    
+    .download-btn {
+      background-color: #337ab7;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 3px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    
+    .download-btn:hover {
+      background-color: #286090;
+    }
+    
+    .refresh-btn {
+      margin-top: 10px;
+      background-color: #5bc0de;
+    }
+    
+    .refresh-btn:hover {
+      background-color: #31b0d5;
+    }
+    
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>File Upload App</h1>
+  
+  <div class="upload-section">
+    <h2>Upload Video</h2>
+    <form id="videoForm">
+      <div class="form-group">
+        <label for="videoFile">Select Video:</label>
+        <input type="file" id="videoFile" name="video" accept="video/*" required>
+      </div>
+      <button type="submit">Upload Video</button>
+    </form>
+    <div id="videoStatus" class="status"></div>
+    
+    <div class="section-title">
+      <h3>Available Videos</h3>
+      <button class="refresh-btn" onclick="loadVideoFiles()">Refresh</button>
+    </div>
+    <div id="videoList" class="file-list">
+      <p>Loading videos...</p>
+    </div>
+  </div>
+  
+  <div class="upload-section">
+    <h2>Upload Photo</h2>
+    <form id="photoForm">
+      <div class="form-group">
+        <label for="photoFile">Select Photo:</label>
+        <input type="file" id="photoFile" name="photo" accept="image/*" required>
+      </div>
+      <button type="submit">Upload Photo</button>
+    </form>
+    <div id="photoStatus" class="status"></div>
+    
+    <div class="section-title">
+      <h3>Available Photos</h3>
+      <button class="refresh-btn" onclick="loadPhotoFiles()">Refresh</button>
+    </div>
+    <div id="photoList" class="file-list">
+      <p>Loading photos...</p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('videoForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      const fileInput = document.getElementById('videoFile');
+      const statusDiv = document.getElementById('videoStatus');
+      
+      if (fileInput.files.length === 0) {
+        showStatus(statusDiv, 'Please select a video file', false);
+        return;
+      }
+      
+      formData.append('video', fileInput.files[0]);
+      
+      try {
+        showStatus(statusDiv, 'Uploading...', true);
+        const response = await fetch('/upload/video', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          showStatus(statusDiv, `Success! Video uploaded as ${result.file}`, true);
+        } else {
+          showStatus(statusDiv, `Error: ${result.error}`, false);
+        }
+      } catch (error) {
+        showStatus(statusDiv, `Error: ${error.message}`, false);
+      }
+    });
+    
+    document.getElementById('photoForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      const fileInput = document.getElementById('photoFile');
+      const statusDiv = document.getElementById('photoStatus');
+      
+      if (fileInput.files.length === 0) {
+        showStatus(statusDiv, 'Please select a photo file', false);
+        return;
+      }
+      
+      formData.append('photo', fileInput.files[0]);
+      
+      try {
+        showStatus(statusDiv, 'Uploading...', true);
+        const response = await fetch('/upload/photo', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          showStatus(statusDiv, `Success! Photo uploaded as ${result.file}`, true);
+        } else {
+          showStatus(statusDiv, `Error: ${result.error}`, false);
+        }
+      } catch (error) {
+        showStatus(statusDiv, `Error: ${error.message}`, false);
+      }
+    });
+    
+    function showStatus(element, message, isSuccess) {
+      element.textContent = message;
+      element.style.display = 'block';
+      
+      if (isSuccess) {
+        element.className = 'status success';
+      } else {
+        element.className = 'status error';
+      }
+    }
+    
+    async function loadVideoFiles() {
+      const videoListEl = document.getElementById('videoList');
+      videoListEl.innerHTML = '<p>Loading videos...</p>';
+      
+      try {
+        const response = await fetch('/files/videos');
+        const files = await response.json();
+        
+        if (files.length === 0) {
+          videoListEl.innerHTML = '<p>No videos uploaded yet.</p>';
+          return;
+        }
+        
+        videoListEl.innerHTML = '';
+        files.forEach(file => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'file-item';
+          
+          const fileName = document.createElement('span');
+          fileName.textContent = file;
+          
+          const downloadLink = document.createElement('a');
+          downloadLink.href = `/download/video/${file}`;
+          downloadLink.className = 'download-btn';
+          downloadLink.textContent = 'Download';
+          downloadLink.setAttribute('download', '');
+          
+          fileItem.appendChild(fileName);
+          fileItem.appendChild(downloadLink);
+          videoListEl.appendChild(fileItem);
+        });
+      } catch (error) {
+        videoListEl.innerHTML = `<p>Error loading videos: ${error.message}</p>`;
+      }
+    }
+    
+    async function loadPhotoFiles() {
+      const photoListEl = document.getElementById('photoList');
+      photoListEl.innerHTML = '<p>Loading photos...</p>';
+      
+      try {
+        const response = await fetch('/files/photos');
+        const files = await response.json();
+        
+        if (files.length === 0) {
+          photoListEl.innerHTML = '<p>No photos uploaded yet.</p>';
+          return;
+        }
+        
+        photoListEl.innerHTML = '';
+        files.forEach(file => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'file-item';
+          
+          const fileName = document.createElement('span');
+          fileName.textContent = file;
+          
+          const downloadLink = document.createElement('a');
+          downloadLink.href = `/download/photo/${file}`;
+          downloadLink.className = 'download-btn';
+          downloadLink.textContent = 'Download';
+          downloadLink.setAttribute('download', '');
+          
+          fileItem.appendChild(fileName);
+          fileItem.appendChild(downloadLink);
+          photoListEl.appendChild(fileItem);
+        });
+      } catch (error) {
+        photoListEl.innerHTML = `<p>Error loading photos: ${error.message}</p>`;
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      loadVideoFiles();
+      loadPhotoFiles();
+    });
+    
+    const originalVideoShowStatus = showStatus;
+    showStatus = function(element, message, isSuccess) {
+      originalVideoShowStatus(element, message, isSuccess);
+      if (isSuccess && element.id === 'videoStatus') {
+        loadVideoFiles();
+      } else if (isSuccess && element.id === 'photoStatus') {
+        loadPhotoFiles();
+      }
+    };
+  </script>
+</body>
+</html> 
